@@ -33,6 +33,9 @@ CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
 extern CBaseEntity				*g_pLastSpawn;
 
+ConVar sv_randomizer("sv_randomizer", "0", FCVAR_NOTIFY, "");
+ConVar sv_randomizer_weaponcount("sv_randomizer_weaponcount", "5", FCVAR_NOTIFY, "");
+
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
 void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade );
@@ -157,41 +160,80 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_Citizen.die" );
 }
 
-void CHL2MP_Player::GiveAllItems( void )
+void CHL2MP_Player::GiveItems(bool bGiveAll)
 {
 	EquipSuit();
 
-	CBasePlayer::GiveAmmo( 255,	"Pistol");
-	CBasePlayer::GiveAmmo( 255,	"AR2" );
-	CBasePlayer::GiveAmmo( 5,	"AR2AltFire" );
-	CBasePlayer::GiveAmmo( 255,	"SMG1");
-	CBasePlayer::GiveAmmo( 1,	"smg1_grenade");
-	CBasePlayer::GiveAmmo( 255,	"Buckshot");
-	CBasePlayer::GiveAmmo( 32,	"357" );
-	CBasePlayer::GiveAmmo( 3,	"rpg_round");
+	static const char* g_pszAllWeaponNames[] =
+	{
+		"weapon_stunstick",
+		"weapon_crowbar",
+		"weapon_pistol",
+		"weapon_357",
+		"weapon_smg1",
+		"weapon_ar2",
+		"weapon_shotgun",
+		"weapon_frag",
+		"weapon_crossbow",
+		"weapon_rpg",
+		"weapon_slam",
+		"weapon_physcannon"
+	};
 
-	CBasePlayer::GiveAmmo( 1,	"grenade" );
-	CBasePlayer::GiveAmmo( 2,	"slam" );
+	static const char* g_pszAllAmmoNames[] =
+	{
+		"AR2",
+		"AR2AltFire",
+		"Pistol",
+		"SMG1",
+		"smg1_grenade",
+		"Buckshot",
+		"357",
+		"rpg_round",
+		"XBowBolt",
+		"grenade",
+		"slam"
+	};
 
-	GiveNamedItem( "weapon_crowbar" );
-	GiveNamedItem( "weapon_stunstick" );
-	GiveNamedItem( "weapon_pistol" );
-	GiveNamedItem( "weapon_357" );
+	if (bGiveAll)
+	{
+		// Give us everything.
 
-	GiveNamedItem( "weapon_smg1" );
-	GiveNamedItem( "weapon_ar2" );
-	
-	GiveNamedItem( "weapon_shotgun" );
-	GiveNamedItem( "weapon_frag" );
-	
-	GiveNamedItem( "weapon_crossbow" );
-	
-	GiveNamedItem( "weapon_rpg" );
+		int WeaponList = ARRAYSIZE(g_pszAllWeaponNames);
+		for (int i = 0; i < WeaponList; ++i)
+		{
+			GiveNamedItem(g_pszAllWeaponNames[i]);
+		}
 
-	GiveNamedItem( "weapon_slam" );
+		int AmmoList = ARRAYSIZE(g_pszAllAmmoNames);
+		for (int i = 0; i < AmmoList; ++i)
+		{
+			CBasePlayer::GiveAmmo(999, g_pszAllAmmoNames[i]);
+		}
+	}
+	else
+	{
+		// Give us some weapons.
+		int nWeapons = ARRAYSIZE(g_pszAllWeaponNames);
+		int weaponCount = Clamp(sv_randomizer_weaponcount.GetInt(), 1, nWeapons);
+		for (int i = 0; i < weaponCount; ++i)
+		{
+			int randomChoice = rand() % nWeapons;
+			GiveNamedItem(g_pszAllWeaponNames[randomChoice]);
+		}
 
-	GiveNamedItem( "weapon_physcannon" );
-	
+		// Give us ammo for our new weapons.
+		int WeaponList = ARRAYSIZE(g_pszAllWeaponNames);
+		for (int i = 0; i < WeaponList; ++i)
+		{
+			CBaseCombatWeapon* pCheckWeapon = Weapon_OwnsThisType(g_pszAllWeaponNames[i]);
+			if (pCheckWeapon)
+			{
+				CBasePlayer::GiveAmmo(RandomInt(10, 999), pCheckWeapon->GetPrimaryAmmoType());
+				CBasePlayer::GiveAmmo(RandomInt(10, 999), pCheckWeapon->GetSecondaryAmmoType());
+			}
+		}
+	}
 }
 
 void CHL2MP_Player::GiveDefaultItems( void )
@@ -1025,7 +1067,7 @@ void CHL2MP_Player::CheatImpulseCommands( int iImpulse )
 			{
 				if( sv_cheats->GetBool() )
 				{
-					GiveAllItems();
+					GiveItems(true);
 				}
 			}
 			break;
