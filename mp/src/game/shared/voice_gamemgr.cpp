@@ -37,7 +37,9 @@ ConVar voice_serverdebug( "voice_serverdebug", "0" );
 
 // Set game rules to allow all clients to talk to each other.
 // Muted players still can't talk to each other.
-ConVar sv_alltalk( "sv_alltalk", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Players can hear all other players, no team restrictions" );
+ConVar sv_alltalk( "sv_alltalk", "1", FCVAR_NOTIFY | FCVAR_REPLICATED, "Players can hear all other players, no team restrictions" );
+ConVar sv_proximitychat("sv_proximitychat", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "");
+//ConVar sv_proximitydistance("sv_proximitydistance", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "");
 
 
 CVoiceGameMgr g_VoiceGameMgr;
@@ -225,7 +227,17 @@ void CVoiceGameMgr::UpdateMasks()
 
 		CPlayerBitVec gameRulesMask;
 		CPlayerBitVec ProximityMask;
-		bool		bProximity = false;
+		bool bProximity;
+		if (sv_proximitychat.GetInt() == 0) 
+		{
+			bProximity = false;
+		}
+		else
+		{
+			bProximity = true;
+		}
+
+
 		if( g_PlayerModEnable[iClient] )
 		{
 			// Build a mask of who they can hear based on the game rules.
